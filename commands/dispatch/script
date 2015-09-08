@@ -53,7 +53,9 @@ set -o nounset -o pipefail
 # arguments. Each accepted command line flag results in setting 
 # one the corresponding option variables.
 
+env|grep RD|sort >/tmp/node.executor.env
 
+echo "DEBUG: \$@=$@" >> /tmp/node.executor.env
 rerun_options_parse "$@"
 
 
@@ -74,24 +76,24 @@ case "$1" in
 	  	 	rerun_log info "executing: ${DOCKER_COMMAND} $2 $MACHINE"
     		${DOCKER_COMMAND} $2 $MACHINE
     	else
-    		rerun_die 3 "command no supported: $1 $2"
+    		rerun_die 3 "command not supported: $1 $2"
     	fi
     	;;
     docker)
-		# create a subshell to run the docker command in its own environment
+		# evaluate exported env vars in a subshell to default the DOCKER_HOST,DOCKER_CERT_PATH settings
 		(
         eval "$(docker-machine env $MACHINE)"
 
         shift
 	  	rerun_log info "executing: docker $@"
 
-        eval docker $*
+        docker "$@"
     	)
 		;;
 	*)
 		# Execute an adhoc command on the machine
 		rerun_log info "executing: $DOCKER_COMMAND ssh $MACHINE $@"
-		$DOCKER_COMMAND ssh $MACHINE "$COMMAND"
+		$DOCKER_COMMAND ssh $MACHINE "$@"
 	;;
 esac
 
